@@ -78,7 +78,7 @@ def convert_ic50_to_pic50(dataframe):
     return dataframe.drop(columns=['standard_value'])
 
 # --- SIDEBAR CONTROL HUB ---
-st.sidebar.title("⚙️ Pipeline Controller")
+st.sidebar.title("Pipeline Controller")
 st.sidebar.markdown("Navigate through processing layers smoothly:")
 
 pipeline_stage = st.sidebar.radio(
@@ -93,14 +93,14 @@ pipeline_stage = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("📊 Memory Pipeline Monitors")
+st.sidebar.subheader("Memory Pipeline Monitors")
 st.sidebar.indicator = lambda label, status: st.sidebar.caption(f"{label}: {'🟢 Loaded' if status else '⚪ Empty'}")
 st.sidebar.indicator("Stage 1 (Raw Data)", st.session_state.raw_data is not None)
 st.sidebar.indicator("Stage 2 (Curated Data)", st.session_state.curated_data is not None)
 st.sidebar.indicator("Stage 3 (Fingerprints)", st.session_state.fingerprint_data is not None)
 st.sidebar.indicator("Stage 5 (Trained Model)", st.session_state.production_model is not None)
 
-st.title("🔬 Computational Drug Discovery & Translational Modeling Dashboard")
+st.title("Computational Drug Discovery & Translational Modeling Dashboard")
 st.markdown("---")
 
 # ==========================================
@@ -109,7 +109,10 @@ st.markdown("---")
 if pipeline_stage == "1. Target Data Mining":
     st.header("Step 1: Data Mining Bioactivity Metrics via ChEMBL API")
     
-    st.markdown("### 🛠️ Local Data Fallback Workspace")
+    # Global outbound resource link integration
+    st.markdown(" Explore cross-referenced metrics on the official [ChEMBL Database Platform](https://www.ebi.ac.uk/chembl/).")
+    
+    st.markdown("Local Data Fallback Workspace")
     uploaded_fallback = st.file_uploader(
         "If ChEMBL times out, upload a bioactivity CSV file (Requires columns: `molecule_chembl_id`, `canonical_smiles`, `standard_value`):", 
         type=["csv"]
@@ -133,14 +136,89 @@ if pipeline_stage == "1. Target Data Mining":
                     fb_df['class'] = bio_labels
                 
                 st.session_state.raw_data = fb_df.reset_index(drop=True)
-                st.success(f"🎉 Data processed successfully! Injected {st.session_state.raw_data.shape[0]} compounds into Stage 1.")
+                st.success(f"Data processed successfully! Injected {st.session_state.raw_data.shape[0]} compounds into Stage 1.")
             else:
                 st.error(f"Incompatible schema mapping. The loaded CSV file must contain: {list(req_cols)}")
         except Exception as e:
             st.error(f"Error reading file structure: {e}")
             
     st.markdown("---")
-    st.markdown("### 🌐 Live API Lookup Panel")
+    
+    st.markdown("###Universal ChEMBL ID Lookup & Resolver")
+    id_input = st.text_input("Enter any ChEMBL ID (e.g., Molecule CHEMBL25, Target CHEMBL346):", value="CHEMBL25")
+    
+    if st.button("Fetch Entity Details", key="universal_lookup_btn"):
+        if not CHEMBL_AVAILABLE:
+            st.error(f"ChEMBL API Endpoint Client state is disconnected: {CHEMBL_ERROR_MSG}")
+        elif not id_input.strip():
+            st.warning("Please supply a valid alphanumeric ChEMBL lookup tag string.")
+        else:
+            with st.spinner("Resolving identifier across ChEMBL registries..."):
+                target_id = id_input.strip().upper()
+                is_resolved = False
+                
+                # Route A: Attempt to evaluate entry as a Small Molecule / Compound
+                try:
+                    mol_info = new_client.molecule.get(target_id)
+                    if mol_info and 'molecule_chembl_id' in mol_info:
+                        is_resolved = True
+                        pref_name = mol_info.get('pref_name') or "Unnamed Compound Reference"
+                        max_phase = mol_info.get('max_phase') or "N/A"
+                        structures = mol_info.get('molecule_structures') or {}
+                        canonical_smiles = structures.get('canonical_smiles') or "SMILES notation data missing"
+                        
+                        st.success(f"**Molecule Compound Identified:** {pref_name} ({target_id})")
+                        st.markdown(f"- **Max Clinical Phase:** Stage {max_phase}")
+                        st.markdown(f"**Resolved Canonical SMILES:**")
+                        st.code(canonical_smiles, language="text")
+                        
+                        if canonical_smiles != "SMILES notation data missing":
+                            single_df = pd.DataFrame([{
+                                'molecule_chembl_id': target_id,
+                                'canonical_smiles': canonical_smiles,
+                                'standard_value': 1000.0,  # Operational baseline placeholder
+                                'class': 'active'
+                            }])
+                            st.session_state.raw_data = single_df
+                            st.success(f"Successfully loaded **{target_id}** directly into the active pipeline matrix!")
+                        else:
+                            st.error("Cannot feed pipeline: Canonical SMILES sequence notation is missing.")
+                except Exception:
+                    pass  # Gracefully drop through to evaluate under target registry
+                
+                # Route B: Fall back to evaluate entry as a Biological Target / Organism
+                if not is_resolved:
+                    try:
+                        tgt_info = new_client.target.get(target_id)
+                        if tgt_info and 'target_chembl_id' in tgt_info:
+                            is_resolved = True
+                            pref_name = tgt_info.get('pref_name') or "Unnamed Target Reference"
+                            organism = tgt_info.get('organism') or "Unknown Organism"
+                            target_type = tgt_info.get('target_type') or "N/A"
+                            
+                            st.success(f"**Target Entity Identified:** {pref_name} ({target_id})")
+                            st.info(f"This is a **{target_type}** entry ({organism}), not an isolated molecule. "
+                                    f"It has been automatically injected into the search context below! You can now hit "
+                                    f"**'Extract & Filter IC50 Bioactivity Assays'** to pull its compound library data.")
+                            
+                            # Automatically cross-inject into downstream selection states
+                            st.session_state.selected_target_id = target_id
+                            st.session_state.target_name = pref_name
+                            st.session_state.search_results = pd.DataFrame([{
+                                'target_chembl_id': target_id,
+                                'pref_name': pref_name,
+                                'target_type': target_type,
+                                'organism': organism
+                            }])
+                    except Exception:
+                        pass
+                
+                if not is_resolved:
+                    st.error(f"Identifier `{target_id}` could not be resolved as an active Molecule or Target entry.")
+                    st.info("Verify your character syntax or look up the entry manually on the ChEMBL portal.")
+                    
+    st.markdown("---")
+    st.markdown("Live API Target Lookup Panel")
     search_query = st.text_input("Enter Disease Target Protein Name:", value="acetylcholinesterase")
     
     if st.button("Query ChEMBL Database", type="primary"):
@@ -188,11 +266,11 @@ if pipeline_stage == "1. Target Data Mining":
                         subset_df['class'] = bio_labels
                         
                         st.session_state.raw_data = subset_df.reset_index(drop=True)
-                        st.success(f"🎉 Live download successful! Loaded {st.session_state.raw_data.shape[0]} unique compounds.")
+                        st.success(f"Live download successful! Loaded {st.session_state.raw_data.shape[0]} unique compounds.")
                     else:
                         st.error("The selected target profile contains no valid quantitative IC50 metrics.")
                 except Exception as api_err:
-                    st.error("⚠️ **ChEMBL Database Query Failed**")
+                    st.error("**ChEMBL Database Query Failed**")
                     st.info("The server rejected the heavy payload. Please use the Local Data Fallback Workspace section above to seed the matrix.")
 
     if st.session_state.raw_data is not None:
@@ -206,7 +284,7 @@ elif pipeline_stage == "2. Exploratory Data Analysis (EDA)":
     st.header("Step 2: Calculate Lipinski Parameters and Normalize Values")
     
     if st.session_state.raw_data is None:
-        st.warning("⚠️ Execution Interrupted: Please seed your target dataset via Stage 1 before processing.")
+        st.warning("Execution Interrupted: Please seed your target dataset via Stage 1 before processing.")
     else:
         if st.button("Execute Physicochemical Parameter Extraction", type="primary"):
             with st.spinner("Extracting parameters with RDKit backend engine..."):
@@ -252,7 +330,7 @@ elif pipeline_stage == "3. Structural Fingerprinting":
     row_count_limit = st.slider("Select maximum compound cohort size for extraction slice:", 10, 1000, step=10, value=100)
     
     if st.session_state.curated_data is None:
-        st.warning("⚠️ Execution Interrupted: Please compute Lipinski filters inside Stage 2 first.")
+        st.warning("Execution Interrupted: Please compute Lipinski filters inside Stage 2 first.")
     else:
         if st.button("Generate High-Throughput Descriptors Matrix", type="primary"):
             if not Path(padel_jar_input).exists() or not Path(padel_xml_input).exists():
@@ -300,7 +378,7 @@ elif pipeline_stage == "4. Regressor Benchmarking":
     variance_slider = st.slider("Select Variance Threshold Pruning Cutoff Point:", 0.0, 0.10, step=0.01, value=0.05)
     
     if st.session_state.fingerprint_data is None:
-        st.warning("⚠️ Execution Interrupted: Feature arrays must be built inside Stage 3 first.")
+        st.warning("Execution Interrupted: Feature arrays must be built inside Stage 3 first.")
     else:
         if st.button("Run Automated Machine Learning Benchmarks", type="primary"):
             with st.spinner("Screening multiple regression models simultaneously via LazyPredict..."):
@@ -352,7 +430,7 @@ elif pipeline_stage == "5. Production Training & Inference":
     st.header("Step 5: Train Production Random Forest Model & Run Virtual Screen")
     
     if st.session_state.fingerprint_data is None:
-        st.warning("⚠️ Execution Interrupted: Fingerprint training arrays must be built inside Stage 3 first.")
+        st.warning("Execution Interrupted: Fingerprint training arrays must be built inside Stage 3 first.")
     else:
         col_left, col_right = st.columns([1, 1])
         
