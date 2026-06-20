@@ -1,0 +1,9 @@
+streamlit
+pandas
+numpy
+matplotlib
+seaborn
+rdkit
+scikit-learn
+lazypredict
+chembl-webresource-client

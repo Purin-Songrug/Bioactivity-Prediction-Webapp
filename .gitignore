@@ -1,0 +1,14 @@
+# Ignore local virtual environments
+bio_env/
+venv/
+.venv/
+
+# Ignore heavy local data storage and data outputs
+*.csv
+*.pdf
+results/
+.ipynb_checkpoints/
+
+# OS cache files
+.DS_Store
+Thumbs.db
