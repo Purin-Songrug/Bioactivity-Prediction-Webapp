@@ -27,7 +27,7 @@ except Exception as e:
     CHEMBL_ERROR_MSG = str(e)
 
 # --- GLOBAL STYLING & CONFIGURATION ---
-st.set_page_config(page_title="Translational CDD Pipeline", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Translational CDD Pipeline", page_icon="🔬", layout="wide", initial_sidebar_state="expanded")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_PADEL_JAR = SCRIPT_DIR / "padel" / "PaDEL-Descriptor" / "PaDEL-Descriptor.jar"
