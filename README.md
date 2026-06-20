@@ -2,6 +2,8 @@
 
 An end-to-end drug discovery pipeline built with Python and Streamlit that leverages the ChEMBL API to retrieve bioactivity data, evaluates molecular properties, computes PubChem chemical fingerprints, and benchmarks machine learning regression models to predict $pIC_{50}$ values.
 
+[Link](https://biopredict.streamlit.app/)
+
 <img width="959" height="440" alt="image" src="https://github.com/user-attachments/assets/d0d3f602-8ee8-48be-bbe2-73e435158276" />
 
 ---
