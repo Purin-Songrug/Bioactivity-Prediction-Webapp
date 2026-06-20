@@ -27,7 +27,7 @@ except Exception as e:
     CHEMBL_ERROR_MSG = str(e)
 
 # --- GLOBAL STYLING & CONFIGURATION ---
-st.set_page_config(page_title="Translational CDD Pipeline", page_icon="🔬", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="BioPredict", page_icon="🔬", layout="wide", initial_sidebar_state="expanded")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_PADEL_JAR = SCRIPT_DIR / "padel" / "PaDEL-Descriptor" / "PaDEL-Descriptor.jar"
@@ -100,7 +100,8 @@ st.sidebar.indicator("Stage 2 (Curated Data)", st.session_state.curated_data is 
 st.sidebar.indicator("Stage 3 (Fingerprints)", st.session_state.fingerprint_data is not None)
 st.sidebar.indicator("Stage 5 (Trained Model)", st.session_state.production_model is not None)
 
-st.title("Computational Drug Discovery & Translational Modeling Dashboard")
+st.title("BioPredict")
+st.subheader("A Computational Drug Discovery & Translational Modeling Dashboard")
 st.markdown("---")
 
 # ==========================================
