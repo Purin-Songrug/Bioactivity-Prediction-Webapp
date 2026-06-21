@@ -1,0 +1,15 @@
+name: Update App
+
+on:
+  schedule:
+    # Runs every 4 hours (At minute 0 past every 4th hour)
+    - cron: '0 */4 * * *'
+  workflow_dispatch: # Allows you to trigger the action manually from GitHub
+
+jobs:
+  ping-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send HTTP Request to Streamlit App
+        run: |
+          curl -sL -w "%{http_code}" "https://biopredict.streamlit.app/" -o /dev/null

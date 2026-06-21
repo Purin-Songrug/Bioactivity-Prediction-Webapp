@@ -145,7 +145,7 @@ if pipeline_stage == "1. Target Data Mining":
             
     st.markdown("---")
     
-    st.markdown("###Universal ChEMBL ID Lookup & Resolver")
+    st.markdown("Universal ChEMBL ID Lookup & Resolver")
     id_input = st.text_input("Enter any ChEMBL ID (e.g., Molecule CHEMBL25, Target CHEMBL346):", value="CHEMBL25")
     
     if st.button("Fetch Entity Details", key="universal_lookup_btn"):
