@@ -12,4 +12,4 @@ jobs:
     steps:
       - name: Send HTTP Request to Streamlit App
         run: |
-          curl -sL -w "https://biopredict.streamlit.app/" -o /dev/null
+          curl -sL -o /dev/null https://biopredict.streamlit.app/
